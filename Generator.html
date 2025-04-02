@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payslip Calculator</title>
+    <!-- Include html2pdf library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Include jsPDF library (alternative/backup option) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Include html2canvas (used by jsPDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #f5f5f5;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        
+        .input-section {
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .input-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .input-group {
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .input-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .payslip {
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+            border: 1px solid #000;
+            background-color: white !important;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: left;
+            height: 25px;
+        }
+        
+        .header-row {
+            background-color: #d9d9d9 !important;
+        }
+        
+        .header-cell {
+            font-weight: bold;
+        }
+        
+        .company-info {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #000;
+            background-color: #f0f0f0 !important;
+        }
+        
+        .company-name, .pay-advice {
+            padding: 5px;
+            font-weight: bold;
+        }
+        
+        .employee-info {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #000;
+        }
+        
+        .employee-name, .id-numbers {
+            padding: 5px;
+        }
+        
+        .payment-header {
+            text-align: center;
+            font-weight: bold;
+            background-color: #d9d9d9 !important;
+        }
+        
+        .amount-cell {
+            text-align: right;
+        }
+        
+        .total-row td {
+            font-weight: bold;
+        }
+        
+        .year-to-date {
+            font-size: 0.9em;
+        }
+        
+        .year-to-date th {
+            text-align: center;
+            font-size: 0.8em;
+        }
+        
+        .year-to-date-header {
+            text-align: center !important;
+            vertical-align: middle;
+            font-weight: bold;
+        }
+        
+        .empty-cell {
+            border: 1px solid #000;
+        }
+        
+        .section-header {
+            border-bottom: 1px solid #000;
+            display: flex;
+            background-color: #f0f0f0 !important;
+        }
+        
+        .payments-header, .deductions-header {
+            width: 50%;
+            text-align: center;
+            font-weight: bold;
+            padding: 5px 0;
+        }
+        
+        .button-group {
+            text-align: center;
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .print-button {
+            background-color: #2196F3;
+        }
+        
+        .download-button {
+            background-color: #ff9800;
+        }
+        
+        @media print {
+            body {
+                background-color: #fff !important;
+            }
+            
+            .input-section, .button-group {
+                display: none;
+            }
+            
+            .payslip {
+                border: 1px solid #000;
+                box-shadow: none;
+                background-color: white !important;
+            }
+            
+            .header-row {
+                background-color: #d9d9d9 !important;
+            }
+            
+            .company-info {
+                background-color: #f0f0f0 !important;
+            }
+            
+            .section-header {
+                background-color: #f0f0f0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Input Section -->
+    <div class="input-section">
+        <h2>Payslip Information</h2>
+        <div class="input-group">
+            <div>
+                <label for="companyName">Company Name:</label>
+                <input type="text" id="companyName" value="MILLENIUM INDUSTRIES LIMITED">
+            </div>
+            <div>
+                <label for="payslipNumber">Payslip Number:</label>
+                <input type="text" id="payslipNumber" value="02">
+            </div>
+            <div>
+                <label for="payslipDate">Date:</label>
+                <input type="date" id="payslipDate">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <div>
+                <label for="employeeName">Employee Name:</label>
+                <input type="text" id="employeeName" value="LINCOLN HALL">
+            </div>
+            <div>
+                <label for="trn">TRN:</label>
+                <input type="text" id="trn" value="100-774-962">
+            </div>
+            <div>
+                <label for="nis">NIS:</label>
+                <input type="text" id="nis" value="G 722424">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <div>
+                <label for="monthlySalary">Monthly Salary:</label>
+                <input type="number" id="monthlySalary" value="180000" step="1000">
+            </div>
+            <div>
+                <label for="currentMonth">Current Month:</label>
+                <select id="currentMonth">
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+        </div>
+        
+        <button id="calculateBtn">Calculate Payslip</button>
+    </div>
+    
+    <div class="payslip" id="payslip">
+        <!-- Company and Pay Advice Header -->
+        <div class="company-info">
+            <div class="company-name" id="companyNameDisplay">COMPANY NAME: MILLENIUM INDUSTRIES LIMITED</div>
+            <div class="pay-advice" id="payAdviceDisplay">PAY ADVICE PAYSLIP # 02</div>
+            <div class="date" id="dateDisplay" style="margin-top:  5px; margin-right: 5px;"></div>
+        </div>
+        
+        <!-- Employee Information -->
+        <div class="employee-info">
+            <div class="employee-name" id="employeeNameDisplay">EMPLOYEE'S NAME: LINCOLN HALL</div>
+            <div class="id-numbers" id="trnDisplay">TRN 100-774-962</div>
+            <div class="nis-number" id="nisDisplay" style=" margin-right: 5px;">NIS G 722424</div>
+        </div>
+        
+        <!-- Payments/Deductions Header -->
+        <div class="section-header">
+            <div class="payments-header">PAYMENTS</div>
+            <div class="deductions-header">DEDUCTIONS</div>
+        </div>
+        
+        <!-- Main Payment and Deduction Table -->
+        <table>
+            <tr class="header-row">
+                <th>DESCRIPTION</th>
+                <th>HOURS/UNIT</th>
+                <th>RATE</th>
+                <th>AMOUNT</th>
+                <th>DESCRIPTION</th>
+                <th>AMOUNT</th>
+            </tr>
+            <tr>
+                <td>SALARY</td>
+                <td></td>
+                <td></td>
+                <td class="amount-cell" id="salaryDisplay">180,000.00</td>
+                <td>N. I. S.</td>
+                <td class="amount-cell" id="nisAmountDisplay">2,700.00</td>
+            </tr>
+            <tr>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td>N. H. T.</td>
+                <td class="amount-cell" id="nhtAmountDisplay">3,600.00</td>
+            </tr>
+            <tr>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td>EDUC TAX</td>
+                <td class="amount-cell" id="educTaxDisplay">3,988.80</td>
+            </tr>
+            <tr>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td>PAYE</td>
+                <td class="amount-cell" id="payeDisplay">21,825.00</td>
+            </tr>
+            <tr>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+            </tr>
+            <tr>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+            </tr>
+            <tr>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+                <td class="empty-cell"></td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="3" class="empty-cell"></td>
+                <td class="amount-cell" id="totalSalaryDisplay">180,000.00</td>
+                <td style="font-size: small;">&lt;TOTAL DEDUCTIONS&gt;</td>
+                <td class="amount-cell" id="totalDeductionsDisplay">32,113.80</td>
+            </tr>
+            <tr>
+                <td colspan="4" class="empty-cell"></td>
+                <td>NET PAY &gt;</td>
+                <td class="amount-cell" id="netPayDisplay">147,886.20</td>
+            </tr>
+        </table>
+        
+        <!-- Year to Date Information -->
+        <table class="year-to-date">
+            <tr>
+                <th rowspan="2" class="year-to-date-header">YEAR TO<br>DATE</th>
+                <th>GROSS TAXABLE EARN</th>
+                <th>ED TAX</th>
+                <th>INCOME TAX</th>
+                <th>N I S</th>
+                <th>NHT</th>
+            </tr>
+            <tr>
+                <td class="amount-cell" id="ytdGrossDisplay">180,000.00</td>
+                <td class="amount-cell" id="ytdEdTaxDisplay">3,988.80</td>
+                <td class="amount-cell" id="ytdIncomeTaxDisplay">21,825.00</td>
+                <td class="amount-cell" id="ytdNisDisplay">2,700.00</td>
+                <td class="amount-cell" id="ytdNhtDisplay">3,600.00</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="button-group">
+        <button class="print-button" id="printBtn">Print Payslip</button>
+        <button class="download-button" id="downloadPdfBtn">Download as PDF</button>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set today's date as default
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0];
+    document.getElementById('payslipDate').value = dateString;
+    
+    // Set current month as default
+    document.getElementById('currentMonth').value = today.getMonth() + 1;
+    
+    // Initialize with default values
+    calculatePayslip();
+    
+    // Set up event listeners
+    document.getElementById('calculateBtn').addEventListener('click', calculatePayslip);
+    document.getElementById('printBtn').addEventListener('click', function() {
+        window.print();
+    });
+    
+    // Download PDF function using html2pdf
+    document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+        // Get employee name for filename
+        const employeeName = document.getElementById('employeeName').value;
+        const payslipDate = document.getElementById('payslipDate').value;
+        const filename = `Payslip_${employeeName.replace(/\s+/g, '_')}_${payslipDate}.pdf`;
+        
+        // Get the payslip element
+        const element = document.getElementById('payslip');
+        
+        // Set options for PDF
+        const opt = {
+            margin: 10,
+            filename: filename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                logging: true,
+                backgroundColor: '#ffffff'
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        // Generate PDF
+        html2pdf().from(element).set(opt).save().catch(err => {
+            console.error('Error generating PDF:', err);
+            alert('Error generating PDF. Please try again.');
+        });
+    });
+    
+    function calculatePayslip() {
+        // Get input values
+        const companyName = document.getElementById('companyName').value;
+        const payslipNumber = document.getElementById('payslipNumber').value;
+        const payslipDate = document.getElementById('payslipDate').value;
+        const employeeName = document.getElementById('employeeName').value;
+        const trn = document.getElementById('trn').value;
+        const nis = document.getElementById('nis').value;
+        const monthlySalary = parseFloat(document.getElementById('monthlySalary').value);
+        const currentMonth = parseInt(document.getElementById('currentMonth').value);
+        
+        // Format date for display
+        const dateObj = new Date(payslipDate);
+        const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
+        
+        // Update display of company and employee info
+        document.getElementById('companyNameDisplay').textContent = `COMPANY NAME: ${companyName}`;
+        document.getElementById('payAdviceDisplay').textContent = `PAY ADVICE PAYSLIP # ${payslipNumber}`;
+        document.getElementById('dateDisplay').textContent = formattedDate;
+        document.getElementById('employeeNameDisplay').textContent = `EMPLOYEE'S NAME: ${employeeName}`;
+        document.getElementById('trnDisplay').textContent = `TRN ${trn}`;
+        document.getElementById('nisDisplay').textContent = `NIS ${nis}`;
+        
+        // Calculate deductions based on the correct rates from the tax table
+
+        // NIS calculation (3% with monthly cap of $5,000)
+        const nisRate = 0.03;
+        const nisMax = 5000;
+        const calculatedNis = monthlySalary * nisRate;
+        const nisAmount = Math.min(calculatedNis, nisMax);
+        
+        // Calculate statutory income (Income after NIS deduction)
+        const statutoryIncome = monthlySalary - nisAmount;
+        
+        // NHT calculation (2% of salary)
+        const nhtRate = 0.02;
+        const nhtAmount = monthlySalary * nhtRate;
+        
+        // Education Tax calculation (2.18% of salary)
+        const educTaxRate = 0.0218;
+        const educTax = monthlySalary * educTaxRate;
+        
+        // PAYE (Income Tax) calculation
+        // Annual tax threshold for 2024 (estimated at J$1,500,096)
+        const annualTaxThreshold = 1500096;
+        const monthlyTaxThreshold = annualTaxThreshold / 12;
+        
+        // Calculate PAYE based on tax brackets
+        let paye = 0;
+        const annualSalary = monthlySalary * 12;
+        
+        if (annualSalary > annualTaxThreshold) {
+            // Tax rate of 25% on income above threshold
+            const taxableAmount = annualSalary - annualTaxThreshold;
+            paye = taxableAmount * 0.25 / 12; // Monthly PAYE
+        }
+        
+        // Calculate totals for current month
+        const totalDeductions = nisAmount + nhtAmount + educTax + paye;
+        const netPay = monthlySalary - totalDeductions;
+        
+        // Year to date calculations (based on current month)
+        const ytdGross = monthlySalary * currentMonth;
+        const ytdEdTax = educTax * currentMonth;
+        const ytdIncomeTax = paye * currentMonth;
+        const ytdNis = nisAmount * currentMonth;
+        const ytdNht = nhtAmount * currentMonth;
+        
+        // Update payment and deduction displays
+        document.getElementById('salaryDisplay').textContent = formatCurrency(monthlySalary);
+        document.getElementById('nisAmountDisplay').textContent = formatCurrency(nisAmount);
+        document.getElementById('nhtAmountDisplay').textContent = formatCurrency(nhtAmount);
+        document.getElementById('educTaxDisplay').textContent = formatCurrency(educTax);
+        document.getElementById('payeDisplay').textContent = formatCurrency(paye);
+        
+        // Update totals
+        document.getElementById('totalSalaryDisplay').textContent = formatCurrency(monthlySalary);
+        document.getElementById('totalDeductionsDisplay').textContent = formatCurrency(totalDeductions);
+        document.getElementById('netPayDisplay').textContent = formatCurrency(netPay);
+        
+        // Update year to date values
+        document.getElementById('ytdGrossDisplay').textContent = formatCurrency(ytdGross);
+        document.getElementById('ytdEdTaxDisplay').textContent = formatCurrency(ytdEdTax);
+        document.getElementById('ytdIncomeTaxDisplay').textContent = formatCurrency(ytdIncomeTax);
+        document.getElementById('ytdNisDisplay').textContent = formatCurrency(ytdNis);
+        document.getElementById('ytdNhtDisplay').textContent = formatCurrency(ytdNht);
+    }
+    
+    function formatCurrency(amount) {
+        return amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    }
+});
+</script>
+</body>
+</html>
